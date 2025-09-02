@@ -22,6 +22,8 @@ local key
 -- Interface Storage
 ------------------------------------------------------------------------------------------------------------
 
+local initalized
+
 local timeline
 local scrollContainer
 
@@ -37,6 +39,7 @@ end
 local teams = {}
 
 function widget:GameFrame(n)
+    if not initialized then return end
     timeline._readOnly_width.Update(n)
 
     teams = {}
@@ -333,62 +336,76 @@ end
 -- Setup/Teardown
 ------------------------------------------------------------------------------------------------------------
 
-function widget:Initialize()
-    MasterFramework = WG["MasterFramework " .. requiredFrameworkVersion]
-    if not MasterFramework then
-        error("MasterFramework " .. requiredFrameworkVersion .. " not found!")
+local DeferredInit
+
+function widget:Update()
+    if DeferredInit then 
+        local _DeferredInit = DeferredInit
+        DeferredInit = nil -- to allow more graceful shutdown
+        _DeferredInit()
+        initialized = true
     end
-    
-    table = MasterFramework.table
+end
 
-    timeline = Timeline()
-
-    local tooltip
-
-    local region = Region(timeline, function(hoverX)
-        if hoverX then
-            tooltip:Show()
-            tooltip:SetCenterXOffset(hoverX or 0)
-        else
-            tooltip:Hide()
+function widget:Initialize()
+    -- Defer init, since we're on layer 0 but depend on api_events.lua on layer math.huge
+    DeferredInit = function()
+        MasterFramework = WG["MasterFramework " .. requiredFrameworkVersion]
+        if not MasterFramework then
+            error("MasterFramework " .. requiredFrameworkVersion .. " not found!")
         end
-    end)
+        
+        table = MasterFramework.table
 
-    scrollContainer = MasterFramework:HorizontalScrollContainer(region)
-    scrollContainer.viewport.disableDrawList = true
+        timeline = Timeline()
 
-    tooltip = Tooltip(scrollContainer)
+        local tooltip
 
-    key = MasterFramework:InsertElement(
-        MasterFramework:ResizableMovableFrame(
-            "MasterTimeline",
-            MasterFramework:PrimaryFrame(
-                MasterFramework:Background(
-                    MasterFramework:MarginAroundRect(
-                        MasterFramework:Background(
-                            tooltip,
-                            -- scrollContainer,
-                            { MasterFramework:Color(0, 0, 0, 0.7) },
-                            MasterFramework:AutoScalingDimension(3)
+        local region = Region(timeline, function(hoverX)
+            if hoverX then
+                tooltip:Show()
+                tooltip:SetCenterXOffset(hoverX or 0)
+            else
+                tooltip:Hide()
+            end
+        end)
+
+        scrollContainer = MasterFramework:HorizontalScrollContainer(region)
+        scrollContainer.viewport.disableDrawList = true
+
+        tooltip = Tooltip(scrollContainer)
+
+        key = MasterFramework:InsertElement(
+            MasterFramework:ResizableMovableFrame(
+                "MasterTimeline",
+                MasterFramework:PrimaryFrame(
+                    MasterFramework:Background(
+                        MasterFramework:MarginAroundRect(
+                            MasterFramework:Background(
+                                tooltip,
+                                -- scrollContainer,
+                                { MasterFramework:Color(0, 0, 0, 0.7) },
+                                MasterFramework:AutoScalingDimension(3)
+                            ),
+                            MasterFramework:AutoScalingDimension(20),
+                            MasterFramework:AutoScalingDimension(20),
+                            MasterFramework:AutoScalingDimension(20),
+                            MasterFramework:AutoScalingDimension(20)
                         ),
-                        MasterFramework:AutoScalingDimension(20),
-                        MasterFramework:AutoScalingDimension(20),
-                        MasterFramework:AutoScalingDimension(20),
-                        MasterFramework:AutoScalingDimension(20)
-                    ),
-                    { MasterFramework:Color(0, 0, 0, 0.7) },
-                    MasterFramework:AutoScalingDimension(5)
-                )
+                        { MasterFramework:Color(0, 0, 0, 0.7) },
+                        MasterFramework:AutoScalingDimension(5)
+                    )
+                ),
+                MasterFramework.viewportWidth * 0.1, MasterFramework.viewportHeight * 0.1, 
+                MasterFramework.viewportWidth * 0.8, MasterFramework.viewportHeight * 0.8,
+                false
             ),
-            MasterFramework.viewportWidth * 0.1, MasterFramework.viewportHeight * 0.1, 
-            MasterFramework.viewportWidth * 0.8, MasterFramework.viewportHeight * 0.8,
-            false
-        ),
-        "Unit Deaths",
-        MasterFramework.layerRequest.bottom()
-    )
+            "Unit Deaths",
+            MasterFramework.layerRequest.bottom()
+        )
 
-    self:GameFrame(Spring.GetGameFrame())
+        self:GameFrame(Spring.GetGameFrame())
+    end
 end
 
 function widget:Shutdown()
