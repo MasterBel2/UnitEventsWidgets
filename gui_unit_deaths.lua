@@ -69,6 +69,25 @@ local function Row(unitDefID)
     return row
 end
 
+local function TakeAvailableHeight(body)
+    local cachedHeight
+    local cachedAvailableHeight
+    return {
+        Layout = function(_, availableWidth, availableHeight)
+            local width, height = body:Layout(availableWidth, availableHeight)
+            cachedHeight = height
+            cachedAvailableHeight = math.max(availableHeight, height)
+            return width, cachedAvailableHeight
+            -- return body:Layout(availableWidth, availableHeight)
+        end,
+        Position = function(_, x, y) 
+            -- if not cachedAvailableHeight or not cachedHeight then error() end
+            body:Position(x, y + cachedAvailableHeight - cachedHeight)
+            -- return body:Position(x, y)
+        end
+    }
+end
+
 local function Column(unitTeam, backgroundColor)
     local stack = MasterFramework:VerticalStack(
         {},
@@ -77,7 +96,7 @@ local function Column(unitTeam, backgroundColor)
     )
     local column = MasterFramework:Background(
         MasterFramework:MarginAroundRect(
-            MasterFramework:VerticalScrollContainer(stack),
+            TakeAvailableHeight(MasterFramework:VerticalScrollContainer(stack)),
             MasterFramework:AutoScalingDimension(8),
             MasterFramework:AutoScalingDimension(8),
             MasterFramework:AutoScalingDimension(8),
