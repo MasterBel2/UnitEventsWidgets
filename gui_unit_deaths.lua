@@ -27,6 +27,7 @@ end
 ------------------------------------------------------------------------------------------------------------
 
 local playerColumns = {}
+local configData = {}
 
 local data
 
@@ -118,6 +119,18 @@ local function Column(unitTeam, backgroundColor)
     return column
 end
 
+local function DisplayPlayerColumn(teamID)
+    local r, g, b, a = Spring.GetTeamColor(teamID)
+    local column = Column(teamID, MasterFramework:Color(r, g, b, 0.2))
+    playerColumns[teamID] = column
+
+    column:Update(table.map(data[teamID], function(unitDefID, count)
+        local row = Row(unitDefID)
+        row:SetCount(count)
+        return unitDefID, row
+    end))
+end
+
 ------------------------------------------------------------------------------------------------------------
 -- Data
 ------------------------------------------------------------------------------------------------------------
@@ -152,6 +165,7 @@ local function Update(unitIDs)
 end
 
 function widget:GameFrame(n)
+    -- if not initialized then return end
     if not WG.Master_UnitEvents then
         error("Requires MasterBel2's Events API widget!")
     end
@@ -185,6 +199,12 @@ function widget:Initialize()
         MasterFramework:AutoScalingDimension(8),
         1
     )
+    for _, teamID in ipairs(Spring.GetTeamList()) do
+        if configData[teamID] then
+            DisplayPlayerColumn(teamID)
+        end
+        topRow:SetMembers(table.mapToArray(table.filter(playerColumns, isValueNil), identiyTableToArrayMapFunc))
+    end
 
     key = MasterFramework:InsertElement(
         MasterFramework:ResizableMovableFrame(
@@ -201,25 +221,21 @@ function widget:Initialize()
                                         if not playerList[1] then return end
                                         local name = Spring.GetPlayerInfo(playerList[1])
                                         local r, g, b, a = Spring.GetTeamColor(teamID)
-                                        local columnBackgroundColor = MasterFramework:Color(r, g, b, 0.2)
+                                            
+                                        local checkBox = MasterFramework:CheckBox(10, function(_, checked)
+                                            configData[teamID] = checked
+                                            if checked then
+                                                DisplayPlayerColumn(teamID)
+                                            else
+                                                playerColumns[teamID] = nil
+                                            end
+
+                                            topRow:SetMembers(table.mapToArray(table.filter(playerColumns, isValueNil), identiyTableToArrayMapFunc))
+                                        end)
+                                        checkBox:SetChecked(configData[teamID])
                                         return MasterFramework:HorizontalStack(
                                             {
-                                                MasterFramework:CheckBox(10, function(_, checked)
-                                                    if checked then
-                                                        local column = Column(teamID, columnBackgroundColor)
-                                                        playerColumns[teamID] = column
-
-                                                        column:Update(table.map(data[teamID], function(unitDefID, count)
-                                                            local row = Row(unitDefID)
-                                                            row:SetCount(count)
-                                                            return unitDefID, row
-                                                        end))
-                                                    else
-                                                        playerColumns[teamID] = nil
-                                                    end
-
-                                                    topRow:SetMembers(table.mapToArray(table.filter(playerColumns, isValueNil), identiyTableToArrayMapFunc))
-                                                end),
+                                                checkBox,
                                                 MasterFramework:Text(name, MasterFramework:Color(r, g, b, a))
                                             },
                                             MasterFramework:AutoScalingDimension(8),
@@ -253,4 +269,16 @@ end
 
 function widget:Shutdown()
     MasterFramework:RemoveElement(key)
+end
+
+function widget:SetConfigData(data)
+    -- GameID may be nil if replay has not loaded yet
+    -- We could defer init until GameID to prevent loss of data if widget is loaded at the start of a replay
+    if data and data.gameID and data.gameID == Spring.GetGameRulesParam("GameID") then
+        configData = data
+    end
+end
+function widget:GetConfigData()
+    configData.gameID = Spring.GetGameRulesParam("GameID")
+    return configData
 end
