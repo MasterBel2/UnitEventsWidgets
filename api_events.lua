@@ -13,6 +13,8 @@ end
 -- local data = table.imapToTable(Spring.GetTeamList(), function(index, teamID)
 --     return teamID, {}
 -- end)
+-- WARNING: This widget is written with the assumption that unitIDs will not be re-used.
+-- THIS IS A FALSE ASSUMPTION.
 
 local requiredFrameworkVersion = "Dev"
 
