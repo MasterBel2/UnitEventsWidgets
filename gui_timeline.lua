@@ -41,7 +41,7 @@ local teams = {}
 
 function widget:GameFrame(n)
     if not initialized then return end
-    timeline._readOnly_width.Update(n)
+    timeline._readOnly_width.Update(frameConversion(n))
 
     teams = {}
 
@@ -294,10 +294,20 @@ local function AbsoluteDimension(value)
     return MasterFramework:Dimension(function(value) return value end, value)
 end
 
+local function TakeAvailableWidth(body)
+    return {
+        Layout = function(_, availableWidth, availableHeight)
+            local _, height = body:Layout(availableWidth, availableHeight)
+            return availableWidth, height
+        end,
+        Position = function(_, x, y) body:Position(x, y) end
+    }
+end
+
 local function Timeline()
     local timeline = { events = {} }
     local height = AbsoluteDimension(6 * #Spring.GetTeamList())
-    local width = AbsoluteDimension(Spring.GetGameFrame())
+    local width = AbsoluteDimension(frameConversion(Spring.GetGameFrame()))
 
     timeline._readOnly_width = width
 
@@ -309,8 +319,8 @@ local function Timeline()
         local teamCount = #Spring.GetTeamList()
 
         gl.Color(1, 1, 1, 0.12)
-        local width, _ = scrollContainerGeometryTarget:Size()
-        for i = 1, math.floor(width / pixelsPerMinute) do
+        local visibleWidth, _ = scrollContainerGeometryTarget:Size()
+        for i = 1, math.floor(math.max(visibleWidth, width()) / pixelsPerMinute) do
             gl.Vertex(i * pixelsPerMinute, 0)
             gl.Vertex(i * pixelsPerMinute, height())
         end
@@ -387,7 +397,7 @@ function widget:Initialize()
         scrollContainer = MasterFramework:HorizontalScrollContainer(region)
         scrollContainer.viewport.disableDrawList = true
 
-        scrollContainerGeometryTarget = MasterFramework:GeometryTarget(scrollContainer)
+        scrollContainerGeometryTarget = MasterFramework:GeometryTarget(TakeAvailableWidth(scrollContainer))
 
         tooltip = Tooltip(scrollContainerGeometryTarget)
 
