@@ -416,7 +416,7 @@ function widget:Initialize()
                 MasterFramework.viewportWidth * 0.8, MasterFramework.viewportHeight * 0.8,
                 false
             ),
-            "Unit Deaths",
+            "Timeline",
             MasterFramework.layerRequest.bottom()
         )
 
