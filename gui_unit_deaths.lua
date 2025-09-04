@@ -136,11 +136,12 @@ end
 ------------------------------------------------------------------------------------------------------------
 
 local function Update(unitIDs)
+    local currentFrame = Spring.GetGameFrame()
     for _, unitID in ipairs(unitIDs) do
         local unitData = WG.Master_UnitEvents.data[unitID]
         local destroyed = unitData.destroyed
         
-        if destroyed then
+        if destroyed and destroyed.frame <= currentFrame then
             local unitDefID = unitData.unitDefID
             local unitTeam = destroyed.unitTeam
 

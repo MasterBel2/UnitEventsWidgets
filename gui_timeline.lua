@@ -26,6 +26,7 @@ local initalized
 
 local timeline
 local scrollContainer
+local scrollContainerGeometryTarget
 
 local pixelsPerMinute = 120
 local function frameConversion(n)
@@ -305,11 +306,24 @@ local function Timeline()
     end
 
     local function DrawLinesSpecial()
+        local teamCount = #Spring.GetTeamList()
+
+        gl.Color(1, 1, 1, 0.12)
+        local width, _ = scrollContainerGeometryTarget:Size()
+        for i = 1, math.floor(width / pixelsPerMinute) do
+            gl.Vertex(i * pixelsPerMinute, 0)
+            gl.Vertex(i * pixelsPerMinute, height())
+        end
+
+        gl.Color(1, 1, 1, 0.66)
+        gl.Vertex(frameConversion(Spring.GetGameFrame()), 0)
+        gl.Vertex(frameConversion(Spring.GetGameFrame()), height())
+
         for teamID, frames in pairs(teams) do
             gl.Color(Spring.GetTeamColor(teamID))
             for x, height in pairs(frames) do
-                gl.Vertex(x, teamID * 6 + math.log10(height))
-                gl.Vertex(x, teamID * 6)
+                gl.Vertex(x, (1 + teamID) * 6 + math.log10(height))
+                gl.Vertex(x, (1 + teamID) * 6)
             end
         end
     end
@@ -373,7 +387,9 @@ function widget:Initialize()
         scrollContainer = MasterFramework:HorizontalScrollContainer(region)
         scrollContainer.viewport.disableDrawList = true
 
-        tooltip = Tooltip(scrollContainer)
+        scrollContainerGeometryTarget = MasterFramework:GeometryTarget(scrollContainer)
+
+        tooltip = Tooltip(scrollContainerGeometryTarget)
 
         key = MasterFramework:InsertElement(
             MasterFramework:ResizableMovableFrame(

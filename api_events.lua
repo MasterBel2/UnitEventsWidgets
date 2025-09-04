@@ -21,7 +21,6 @@ local updatedThisFrame = {}
 function NewUnitData(unitID, unitDefID)
     return {
         unitDefID = Spring.GetUnitDefID(unitID),
-        created = { unitTeam = Spring.GetUnitTeam(unitID), frame = Spring.GetGameFrame() },
         transferred = {},
         enteredLOS = {},
         leftLOS = {}
@@ -41,14 +40,55 @@ function widget:Initialize()
         error("MasterFramework " .. requiredFrameworkVersion .. " not found!")
     end
 
-    data = MasterFramework.table.imapToTable(Spring.GetAllUnits(), function(_, unitID)
-        return unitID, NewUnitData(unitID, unitDefID)
-    end)
+    widget:Update()
+end
 
-    WG.Master_UnitEvents = {
-        data = data,
-        updatedThisFrame = updatedThisFrame
-    }
+function widget:Update()
+    if Spring.GetGameRulesParam("GameID") then
+        
+        if VFS.FileExists("LuaUI/Config/Events/" .. Spring.GetGameRulesParam("GameID") .. ".lua") then
+            local success, cachedData = pcall(Json.decode, VFS.LoadFile("LuaUI/Config/Events/" .. Spring.GetGameRulesParam("GameID") .. ".lua", VFS.RAW_FIRST))
+            
+            if success and cachedData then
+                cachedData.jsonLibDoNotEncodeAsArray = nil
+                data = {}
+                -- Json converts all our unitIDs to string because we forced it to store as a table so
+                -- we convert back when loading
+
+                -- @ Doo suggested """
+                --     What if you store this one :
+                --     Table[#table +1] = {index = index, value =value}?
+                -- """
+                for key, value in pairs(cachedData) do
+                    data[tonumber(key)] = value
+                end
+            end
+        end
+        if not data then
+            data = MasterFramework.table.imapToTable(Spring.GetAllUnits(), function(_, unitID)
+                return unitID, NewUnitData(unitID, unitDefID)
+            end)
+        end
+
+        WG.Master_UnitEvents = {
+            data = data,
+            updatedThisFrame = updatedThisFrame
+        }
+
+        widgetHandler:RemoveCallIn("Update")
+    end
+end
+
+function widget:Shutdown()
+    if data and Spring.GetGameRulesParam("GameID") then
+        Spring.CreateDir("LuaUI/Config/Events/")
+        local file = io.open("LuaUI/Config/Events/" .. Spring.GetGameRulesParam("GameID") .. ".lua", "w")
+        -- force Json.encode to encode as a table, not as array, as unitIDs are sparse numbers that should not be encoded as an array
+        data.jsonLibDoNotEncodeAsArray = true
+        file:write(Json.encode(data))
+        file:close()
+        data.jsonLibDoNotEncodeAsArray = nil
+    end
 end
 
 function widget:UnitEnteredLOS(unitID, unitTeam, allyTeam, unitDefID)
@@ -56,6 +96,9 @@ function widget:UnitEnteredLOS(unitID, unitTeam, allyTeam, unitDefID)
 end
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
+    if data[unitID] and data[unitID].created and data[unitID].created.frame ~= Spring.GetGameFrame() then
+        Spring.Echo("UnitID " .. unitID .. " reused in frame " .. Spring.GetGameFrame() .. " (original frame " .. data[unitID].created.frame ..")")
+    end
     UnitData(unitID, unitDefID).created = { unitTeam = unitTeam, frame = Spring.GetGameFrame() }
 end
 
