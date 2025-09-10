@@ -141,7 +141,7 @@ local function Update(unitIDs)
         local unitData = WG.Master_UnitEvents.data[unitID]
         local destroyed = unitData.destroyed
         
-        if destroyed and destroyed.frame <= currentFrame then
+        if destroyed and destroyed.frame <= currentFrame and destroyed.weaponDefID ~= -16 then -- ignore weaponDefID -16 (cancel unit)
             local unitDefID = unitData.unitDefID
             local unitTeam = destroyed.unitTeam
 
