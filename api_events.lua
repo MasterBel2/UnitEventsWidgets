@@ -110,8 +110,8 @@ function widget:UnitGiven(unitID, unitDefID, newTeam, oldTeam)
     table.insert(UnitData(unitID, unitDefID).transferred, { newTeam = newTeam, oldTeam = oldTeam, frame = Spring.GetGameFrame() })
 end
 
-function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerDefID, attackerTeam)
-    UnitData(unitID, unitDefID).destroyed = { unitTeam = unitTeam, attackerTeam = attackerTeam, frame = Spring.GetGameFrame() }
+function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerDefID, attackerTeam, weaponDefID)
+    UnitData(unitID, unitDefID).destroyed = { unitTeam = unitTeam, attackerTeam = attackerTeam, weaponDefID = weaponDefID, frame = Spring.GetGameFrame() }
 end
 
 function widget:GameFrame(n)
