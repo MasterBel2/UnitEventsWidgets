@@ -44,13 +44,17 @@ local function Row(unitDefID)
     local energyText = MasterFramework:Text("", MasterFramework:Color(1, 1, 0, 1))
     local row = MasterFramework:HorizontalStack(
         {
-            MasterFramework:Background(MasterFramework:Rect(MasterFramework:AutoScalingDimension(20), MasterFramework:AutoScalingDimension(20)), { MasterFramework:Image("#"..unitDefID) }, MasterFramework:AutoScalingDimension(3)), -- image rect
+            MasterFramework:Background(
+            MasterFramework:Rect(MasterFramework:AutoScalingDimension(20), MasterFramework:AutoScalingDimension(20)),
+                { MasterFramework:Image("#" .. unitDefID) }, MasterFramework:AutoScalingDimension(3)),                                                                                                                                -- image rect
             MasterFramework:VerticalStack(
                 {
-                    MasterFramework:HorizontalStack({ MasterFramework:Text(UnitDefs[unitDefID].translatedHumanName), countText }, MasterFramework:AutoScalingDimension(8), 0),
+                    MasterFramework:HorizontalStack(
+                    { MasterFramework:Text(UnitDefs[unitDefID].translatedHumanName), countText },
+                        MasterFramework:AutoScalingDimension(8), 0),
                     MasterFramework:HorizontalStack({ metalText, energyText }, MasterFramework:AutoScalingDimension(8), 0)
                 },
-                MasterFramework:AutoScalingDimension(8), 
+                MasterFramework:AutoScalingDimension(8),
                 0
             )
         },
@@ -81,7 +85,7 @@ local function TakeAvailableHeight(body)
             return width, cachedAvailableHeight
             -- return body:Layout(availableWidth, availableHeight)
         end,
-        Position = function(_, x, y) 
+        Position = function(_, x, y)
             -- if not cachedAvailableHeight or not cachedHeight then error() end
             body:Position(x, y + cachedAvailableHeight - cachedHeight)
             -- return body:Position(x, y)
@@ -134,14 +138,24 @@ end
 ------------------------------------------------------------------------------------------------------------
 -- Data
 ------------------------------------------------------------------------------------------------------------
+function table.contains(table, element)
+  for _, value in pairs(table) do
+    if value == element then
+      return true
+    end
+  end
+  return false
+end
+
+local blacklistedWeaponDefIDs = { Game.envDamageTypes.FactoryCancel }
 
 local function Update(unitIDs)
     local currentFrame = Spring.GetGameFrame()
     for _, unitID in ipairs(unitIDs) do
         local unitData = WG.Master_UnitEvents.data[unitID]
         local destroyed = unitData.destroyed
-        
-        if destroyed and destroyed.frame <= currentFrame and destroyed.weaponDefID ~= -16 then -- ignore weaponDefID -16 (cancel unit)
+
+        if destroyed and destroyed.frame <= currentFrame and not table.contains(blacklistedWeaponDefIDs, destroyed.weaponDefID) then
             local unitDefID = unitData.unitDefID
             local unitTeam = destroyed.unitTeam
 
@@ -184,14 +198,14 @@ function widget:Initialize()
     if not MasterFramework then
         error("MasterFramework " .. requiredFrameworkVersion .. " not found!")
     end
-    
+
     table = MasterFramework.table
-    
+
     data = table.imapToTable(Spring.GetTeamList(), function(index, teamID)
         return teamID, {}
     end)
 
-    if WG.Master_UnitEvents then -- units are only around after game start, so it's okay that this only triggers 
+    if WG.Master_UnitEvents then -- units are only around after game start, so it's okay that this only triggers
         Update(table.mapToArray(WG.Master_UnitEvents.data, function(key, _) return key end))
     end
 
@@ -222,7 +236,7 @@ function widget:Initialize()
                                         if not playerList[1] then return end
                                         local name = Spring.GetPlayerInfo(playerList[1])
                                         local r, g, b, a = Spring.GetTeamColor(teamID)
-                                            
+
                                         local checkBox = MasterFramework:CheckBox(10, function(_, checked)
                                             configData[teamID] = checked
                                             if checked then
@@ -231,7 +245,8 @@ function widget:Initialize()
                                                 playerColumns[teamID] = nil
                                             end
 
-                                            topRow:SetMembers(table.mapToArray(table.filter(playerColumns, isValueNil), identiyTableToArrayMapFunc))
+                                            topRow:SetMembers(table.mapToArray(table.filter(playerColumns, isValueNil),
+                                                identiyTableToArrayMapFunc))
                                         end)
                                         checkBox:SetChecked(configData[teamID])
                                         return MasterFramework:HorizontalStack(
@@ -259,7 +274,7 @@ function widget:Initialize()
                     MasterFramework:AutoScalingDimension(5)
                 )
             ),
-            MasterFramework.viewportWidth * 0.1, MasterFramework.viewportHeight * 0.1, 
+            MasterFramework.viewportWidth * 0.1, MasterFramework.viewportHeight * 0.1,
             MasterFramework.viewportWidth * 0.8, MasterFramework.viewportHeight * 0.8,
             true
         ),
@@ -279,6 +294,7 @@ function widget:SetConfigData(data)
         configData = data
     end
 end
+
 function widget:GetConfigData()
     configData.gameID = Spring.GetGameRulesParam("GameID")
     return configData
