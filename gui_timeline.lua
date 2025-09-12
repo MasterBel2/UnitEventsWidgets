@@ -249,7 +249,7 @@ local function Region(child, action)
         child,
         function(responder, x, y)
             if x ~= hoverX then
-                local cachedX, _ = responder:CachedPosition()
+                local cachedX, _ = responder:CachedPositionTranslatedToGlobalContext()
                 hoverX = x
                 action(x - cachedX)
                 region:NeedsRedraw()
