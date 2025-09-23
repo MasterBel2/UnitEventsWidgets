@@ -241,7 +241,6 @@ local function Region(child, action)
     local defaultWidth = pixelsPerMinute
     local selectedRegion
     local hoverX
-    local hoverY
 
     local hover
 
