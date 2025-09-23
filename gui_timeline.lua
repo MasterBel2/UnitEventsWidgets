@@ -126,20 +126,6 @@ local function Column(unitTeam, backgroundColor)
     return column
 end
 
--- Modified version of MasterFramework:ConstantOffsetAnchor() that doesnt constrain the size of the child.
--- Ideally, this uses a separate element with correct layering.
-local function ConstantOffsetAnchor(rectToAnchorTo, anchoredRect, xOffset, yOffset)
-	local anchor = MasterFramework:ConstantOffsetAnchor(rectToAnchorTo, anchoredRect, xOffset, yOffset)
-
-	function anchor:Layout(availableWidth, availableHeight)
-		rectToAnchorToWidth, rectToAnchorToHeight = rectToAnchorTo:Layout(availableWidth, availableHeight)
-		anchoredRectWidth, anchoredRectHeight = anchoredRect:Layout(MasterFramework.viewportWidth, MasterFramework.viewportHeight)
-		return rectToAnchorToWidth, rectToAnchorToHeight
-	end
-
-	return anchor
-end
-
 local function Tooltip(child)
     local isVisible = false
 
@@ -153,7 +139,8 @@ local function Tooltip(child)
         0
     )
 
-    local dummyView = MasterFramework:GeometryTarget({ Position = function() end, Layout = function() return 0, 0 end })
+    local overlayKey
+    
     local tooltipVisible = MasterFramework:GeometryTarget(MasterFramework:Background(
         MasterFramework:MarginAroundRect(
             deadUnitsColumnsStack,
@@ -166,27 +153,41 @@ local function Tooltip(child)
         MasterFramework:AutoScalingDimension(5)
     ))
 
-    local box = MasterFramework:Box(child)
-    local anchor = ConstantOffsetAnchor(
-        child,
-        box,
-        0,
-        0
-    )
+    
+    local tooltip = MasterFramework:GeometryTarget(child)
+    
+    local overlayYOffset = MasterFramework:Dimension(function()
+        if not isVisible then return 0 end
+        local _, anchorHeight = tooltip:Size()
+        local _, tooltipHeight = tooltipVisible:Size()
+        local _, tooltipYOffset = tooltip:CachedPositionTranslatedToGlobalContext()
+        return tooltipYOffset + anchorHeight
+    end, 0)
+    local overlayXOffset = MasterFramework:Dimension(function(_, centerXOffset)
+        if not isVisible then return 0 end
+        local tooltipWidth, _ = tooltipVisible:Size()
+        local tooltipXOffset, _ = tooltip:CachedPositionTranslatedToGlobalContext()
+        local viewportXOffset, _ = scrollContainer.viewport:GetOffsets()
+        return(tooltipXOffset + centerXOffset - viewportXOffset - tooltipWidth / 2)
+    end, 0)
 
-    local tooltip = MasterFramework:GeometryTarget(anchor)
+    local function FreeOffset(child, xOffsetDimension, yOffsetDimension)
+        return {
+            Layout = function(_, availableWidth, availableHeight) child:Layout(math.huge, math.huge) end,
+            Position = function(_, x, y) child:Position(x + xOffsetDimension(), y + yOffsetDimension()) end
+        }
+    end
+
+    local overlayOffset = FreeOffset(
+        MasterFramework:PrimaryFrame(tooltipVisible),
+        overlayXOffset,
+        overlayYOffset
+    )
 
     function tooltip:SetCenterXOffset(centerXOffset)
         if isVisible then
-
-            local _, anchorHeight = self:Size()
-            local tooltipWidth, _ = tooltipVisible:Size()
-            local viewportXOffset, _ = scrollContainer.viewport:GetOffsets()
-
-            anchor:SetOffsets(
-                (centerXOffset - viewportXOffset) - tooltipWidth / 2,
-                anchorHeight
-            )
+            overlayXOffset:Update(centerXOffset)
+            overlayYOffset:Update()
 
             local data = table.imapToTable(Spring.GetTeamList(), function(_, teamID) return teamID, {} end)
 
@@ -224,13 +225,16 @@ local function Tooltip(child)
     end
 
     function tooltip:Hide()
-        isVisible = false
-        box:SetChild(dummyView)
+        if isVisible then
+            isVisible = false
+            MasterFramework:RemoveElement(overlayKey)
+            overlayKey = nil
+        end
     end
     function tooltip:Show()
         if isVisible then return end
         isVisible = true
-        box:SetChild(tooltipVisible)
+        overlayKey = MasterFramework:InsertElement(overlayOffset, "Timeline Tooltip", MasterFramework.layerRequest.top())
     end
 
     return tooltip
@@ -249,8 +253,8 @@ local function Region(child, action)
         function(responder, x, y)
             if x ~= hoverX then
                 local cachedX, _ = responder:CachedPositionTranslatedToGlobalContext()
-                hoverX = x
-                action(x - cachedX)
+                hoverX = x - cachedX
+                action(hoverX)
                 region:NeedsRedraw()
             end
         end,
