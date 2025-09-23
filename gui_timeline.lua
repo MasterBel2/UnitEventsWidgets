@@ -332,8 +332,10 @@ local function Timeline()
         for teamID, frames in pairs(teams) do
             gl.Color(Spring.GetTeamColor(teamID))
             for x, height in pairs(frames) do
-                gl.Vertex(x, (1 + teamID) * 6 + math.log10(height))
-                gl.Vertex(x, (1 + teamID) * 6)
+                if height >= 1 then
+                    gl.Vertex(x, (1 + teamID) * 6 + math.log10(height))
+                    gl.Vertex(x, (1 + teamID) * 6)
+                end
             end
         end
     end
