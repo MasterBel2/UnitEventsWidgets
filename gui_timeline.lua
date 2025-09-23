@@ -367,6 +367,7 @@ function widget:Update()
         local _DeferredInit = DeferredInit
         DeferredInit = nil -- to allow more graceful shutdown
         _DeferredInit()
+        widgetHandler:RemoveCallIn("Update")
     end
 end
 
