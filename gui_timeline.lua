@@ -173,7 +173,7 @@ local function Tooltip(child)
 
     local function FreeOffset(child, xOffsetDimension, yOffsetDimension)
         return {
-            Layout = function(_, availableWidth, availableHeight) child:Layout(math.huge, math.huge) end,
+            Layout = function(_, availableWidth, availableHeight) child:Layout(math.huge, math.huge); return availableWidth, availableHeight end,
             Position = function(_, x, y) child:Position(x + xOffsetDimension(), y + yOffsetDimension()) end
         }
     end
