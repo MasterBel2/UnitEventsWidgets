@@ -163,7 +163,7 @@ local function Tooltip(child)
         local _, tooltipYOffset = tooltip:CachedPositionTranslatedToGlobalContext()
         return tooltipYOffset + anchorHeight
     end, 0)
-    local overlayXOffset = MasterFramework:Dimension(function(_, centerXOffset)
+    local overlayXOffset = MasterFramework:Dimension(function(centerXOffset)
         if not isVisible then return 0 end
         local tooltipWidth, _ = tooltipVisible:Size()
         local tooltipXOffset, _ = tooltip:CachedPositionTranslatedToGlobalContext()
@@ -186,8 +186,8 @@ local function Tooltip(child)
 
     function tooltip:SetCenterXOffset(centerXOffset)
         if isVisible then
-            overlayXOffset:Update(centerXOffset)
-            overlayYOffset:Update()
+            overlayXOffset.Update(centerXOffset)
+            overlayYOffset.Update()
 
             local data = table.imapToTable(Spring.GetTeamList(), function(_, teamID) return teamID, {} end)
 
