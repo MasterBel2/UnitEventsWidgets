@@ -368,7 +368,7 @@ end
 local DeferredInit
 
 function widget:Update()
-    if DeferredInit then 
+    if DeferredInit and WG.Master_UnitEvents then
         local _DeferredInit = DeferredInit
         DeferredInit = nil -- to allow more graceful shutdown
         _DeferredInit()
