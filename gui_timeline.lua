@@ -37,23 +37,38 @@ end
 -- Data
 ------------------------------------------------------------------------------------------------------------
 
+--[[
+teams = {
+    -- team 0
+    [0] = {
+        -- Frame 5, 560 metal cost
+        [5] = 560
+    }
+}
+]]
 local teams = {}
+local currentFrame = 0
 
 function widget:GameFrame(n)
     if not initialized then return end
-    timeline._readOnly_width.Update(frameConversion(n))
 
-    teams = {}
+    -- n - 1 because updatedThisFrame is actually for the previous GameFrame.
+    local newFrame = frameConversion(n - 1)
+    if newFrame ~= currentFrame then
+        for teamID, data in pairs(teams) do
+            data[newFrame] = nil
+        end
+        currentFrame = newFrame
+        timeline._readOnly_width.Update(newFrame)
+    end
 
-    for unitID, unitData in pairs(WG.Master_UnitEvents.data) do
-        if unitData.destroyed then
-            local team = teams[unitData.destroyed.unitTeam] or {}
-            local frameN = frameConversion(unitData.destroyed.frame)
-            local frameMCost = team[frameN] or 0
+    for _, unitID in ipairs(WG.Master_UnitEvents.updatedThisFrame) do
+        local unitData = WG.Master_UnitEvents.data[unitID]
+        if unitData.destroyed and unitData.destroyed.frame == n - 1 then
+            local currentTotal = teams[unitData.destroyed.unitTeam][currentFrame] or 0
+            local metalCost = UnitDefs[unitData.unitDefID].metalCost
             
-            team[frameN] = frameMCost + UnitDefs[unitData.unitDefID].metalCost
-
-            teams[unitData.destroyed.unitTeam] = team
+            teams[unitData.destroyed.unitTeam][currentFrame] = currentTotal + metalCost
         end
     end
 end
@@ -434,6 +449,20 @@ function widget:Initialize()
             "Timeline",
             MasterFramework.layerRequest.bottom()
         )
+
+        for unitID, unitData in pairs(WG.Master_UnitEvents.data) do
+            if unitData.destroyed then
+                local team = teams[unitData.destroyed.unitTeam] or {}
+                local frameN = frameConversion(unitData.destroyed.frame)
+                local frameMCost = team[frameN] or 0
+                
+                local unitDef = UnitDefs[unitData.unitDefID]
+                local metalCost = unitDef.metalCost
+                team[frameN] = frameMCost + UnitDefs[unitData.unitDefID].metalCost
+    
+                teams[unitData.destroyed.unitTeam] = team
+            end
+        end
 
         initialized = true
         self:GameFrame(Spring.GetGameFrame())
